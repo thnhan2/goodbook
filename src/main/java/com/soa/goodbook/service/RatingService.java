@@ -2,6 +2,7 @@ package com.soa.goodbook.service;
 
 import com.soa.goodbook.domain.Rating;
 import com.soa.goodbook.model.RatingDTO;
+import com.soa.goodbook.repos.RatingPagingRepository;
 import com.soa.goodbook.repos.RatingRepository;
 import com.soa.goodbook.util.NotFoundException;
 
@@ -9,6 +10,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -17,9 +22,24 @@ import org.springframework.stereotype.Service;
 public class RatingService {
 
     private final RatingRepository ratingRepository;
+    private final RatingPagingRepository ratingPagingRepository;
 
-    public RatingService(final RatingRepository ratingRepository) {
+    public RatingService(final RatingRepository ratingRepository, final RatingPagingRepository ratingPagingRepository) {
         this.ratingRepository = ratingRepository;
+        this.ratingPagingRepository = ratingPagingRepository;
+    }
+    public List<RatingDTO> findAllByBookId(String bookId) {
+        // Sử dụng phương thức findByBookId trong ratingRepository để tìm các rating dựa trên bookId
+        List<Rating> ratings = ratingRepository.findAllRatingByBookId(bookId);
+
+        // Convert các đối tượng Rating sang DTO (Data Transfer Object) nếu cần
+
+        return ratings.stream()
+                .map(rating -> mapToDTO(rating, new RatingDTO()))
+                .toList();
+    }
+    public Integer getRatingOfBookWithStar(int star, String bookId) {
+        return ratingRepository.countRatingByRatingEquals(star, bookId);
     }
 
     public List<RatingDTO> findAll() {
@@ -100,6 +120,32 @@ public class RatingService {
 
     public boolean idExists(final String id) {
         return ratingRepository.existsByIdIgnoreCase(id);
+    }
+
+
+    public Long getRatingByBookId(final String bookId) {
+        return (long) ratingRepository.countRatingsByBookId(bookId).size();
+    }
+
+    public Long getNumberOfReviewTextByBookId(final String bookId) {
+        return ratingRepository.countReviewTextByBookId(bookId);
+    }
+
+    public List<RatingDTO> getRatingOfBook(final String bookId) {
+        return ratingRepository.findAll().stream().map((rating) ->
+            mapToDTO(rating,new RatingDTO())
+        ).toList();
+    }
+
+    public List<RatingDTO> getRatingOfBookPaging(final String bookId, int page, int offset) {
+        Pageable pageable = PageRequest.of(page,offset);
+        Page<Rating> ratingPage = ratingPagingRepository.findAllByBookId(bookId, pageable);
+        System.out.println("xin chao");
+        for (Rating r : ratingPage) {
+            System.out.println(r);
+        }
+//        return null;
+        return ratingPage.stream().map(rating -> mapToDTO(rating, new RatingDTO())).toList();
     }
 
 }
